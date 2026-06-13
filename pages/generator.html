@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>App Generator — Kopqo AI</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">Kopqo <span>AI</span></a>
+    <div class="nav-links">
+      <a href="chat.html">Chat</a>
+      <a href="generator.html">App Gen</a>
+      <a href="prompt.html">Prompt</a>
+      <a href="image.html">Image</a>
+      <a href="upload.html">File AI</a>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="chat.html">Chat AI</a>
+    <a href="generator.html">App Generator</a>
+    <a href="prompt.html">Prompt Generator</a>
+    <a href="image.html">Image AI</a>
+    <a href="upload.html">File Upload AI</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="section-label">App / Web Generator</div>
+    <h1>Build with a Prompt</h1>
+    <p>Describe your app or website and get full working code instantly.</p>
+  </div>
+
+  <div class="glass-card">
+    <div class="flex flex-col gap-12">
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;display:block;">Your Prompt</label>
+        <textarea
+          class="input-field"
+          id="genInput"
+          rows="5"
+          placeholder="e.g. Build a responsive landing page for a SaaS product with hero section, features, pricing, and contact form using Tailwind CSS..."
+        ></textarea>
+      </div>
+
+      <div class="flex gap-8" style="align-items:center;flex-wrap:wrap;">
+        <select class="input-field" id="langSelect" style="width:auto;resize:none;">
+          <option value="html">HTML / CSS / JS</option>
+          <option value="react">React + JSX</option>
+          <option value="python">Python</option>
+          <option value="vue">Vue.js</option>
+          <option value="node">Node.js</option>
+        </select>
+        <button class="btn-primary" onclick="generateCode()" id="genBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Generate Code
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading skeleton -->
+  <div id="loadingSkeleton" style="display:none;margin-top:24px;">
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-lang">Generating...</div>
+      </div>
+      <div class="code-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:80%;"></div>
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:65%;"></div>
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:90%;"></div>
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:55%;"></div>
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:75%;"></div>
+          <div class="image-skeleton" style="height:14px;border-radius:4px;width:60%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div id="codeOutput" style="display:none;margin-top:24px;">
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang" id="outputLang">html</span>
+        <div class="code-actions">
+          <button class="msg-copy-btn" onclick="copyCode()">Copy</button>
+          <button class="msg-copy-btn" onclick="downloadCode()">Download</button>
+        </div>
+      </div>
+      <div class="code-body">
+        <pre id="outputPre"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+  let generatedCode = '';
+
+  async function generateCode() {
+    const input = document.getElementById('genInput').value.trim();
+    if (!input) { showToast('Please enter a prompt', 'error'); return; }
+
+    const lang = document.getElementById('langSelect').value;
+    const btn = document.getElementById('genBtn');
+    const skeleton = document.getElementById('loadingSkeleton');
+    const output = document.getElementById('codeOutput');
+
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    skeleton.style.display = 'block';
+    output.style.display = 'none';
+
+    const prompt = `Generate complete, production-ready ${lang.toUpperCase()} code for: ${input}. Return ONLY the code without explanation or markdown code fences.`;
+
+    try {
+      const url = `https://api-nanzz.my.id/docs/api/ai/blackbox.php?q=${encodeURIComponent(prompt)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      generatedCode = data?.result || data?.response || data?.message || data?.answer || '';
+      // Strip markdown fences if present
+      generatedCode = generatedCode.replace(/^```[\w]*\n?/gm, '').replace(/```$/gm, '').trim();
+
+      document.getElementById('outputLang').textContent = lang;
+      document.getElementById('outputPre').textContent = generatedCode;
+      output.style.display = 'block';
+      showToast('Code generated successfully');
+    } catch(e) {
+      showToast('Generation failed. Please try again.', 'error');
+    }
+
+    skeleton.style.display = 'none';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Generate Code';
+  }
+
+  function copyCode() {
+    const btn = event.target;
+    copyText(generatedCode, btn);
+  }
+
+  function downloadCode() {
+    const lang = document.getElementById('langSelect').value;
+    const ext = { html: 'html', react: 'jsx', python: 'py', vue: 'vue', node: 'js' }[lang] || 'txt';
+    const blob = new Blob([generatedCode], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `kopqo-generated.${ext}`;
+    a.click();
+    showToast('File downloaded');
+  }
+
+  document.getElementById('genInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) generateCode();
+  });
+</script>
+</body>
+</html>
