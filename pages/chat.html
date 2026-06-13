@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat AI — Kopqo AI</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">Kopqo <span>AI</span></a>
+    <div class="nav-links">
+      <a href="chat.html">Chat</a>
+      <a href="generator.html">App Gen</a>
+      <a href="prompt.html">Prompt</a>
+      <a href="image.html">Image</a>
+      <a href="upload.html">File AI</a>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="chat.html">Chat AI</a>
+    <a href="generator.html">App Generator</a>
+    <a href="prompt.html">Prompt Generator</a>
+    <a href="image.html">Image AI</a>
+    <a href="upload.html">File Upload AI</a>
+  </div>
+</nav>
+
+<div class="chat-layout">
+  <!-- Controls -->
+  <div class="chat-controls">
+    <div>
+      <span class="section-label" style="margin:0">Chat AI</span>
+      <span class="text-dim text-sm" style="margin-left:12px">Powered by DeepSeek</span>
+    </div>
+    <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" id="chatMessages">
+    <!-- Welcome message -->
+    <div class="message assistant" id="welcomeMsg">
+      <div class="msg-avatar">K</div>
+      <div class="msg-body">
+        <div class="msg-bubble">
+          Hello! I'm Kopqo AI, your intelligent daily assistant. How can I help you today?
+        </div>
+        <div class="msg-actions">
+          <button class="msg-copy-btn" onclick="copyText('Hello! I\'m Kopqo AI, your intelligent daily assistant. How can I help you today?', this)">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="chat-input-area">
+    <div class="chat-input-row">
+      <textarea
+        class="input-field"
+        id="chatInput"
+        placeholder="Message Kopqo AI..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <p class="chat-hint">Press Enter to send · Shift+Enter for new line</p>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+  const STORAGE_KEY = 'kopqo_chat_history';
+  let messages = [];
+
+  // Load history
+  function loadHistory() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        messages = JSON.parse(saved);
+        const container = document.getElementById('chatMessages');
+        messages.forEach(m => appendMessageDOM(m.role, m.content, false));
+        scrollToBottom();
+      }
+    } catch(e) {}
+  }
+
+  function saveHistory() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch(e) {}
+  }
+
+  function clearHistory() {
+    messages = [];
+    localStorage.removeItem(STORAGE_KEY);
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '';
+    // Re-add welcome
+    appendMessageDOM('assistant', 'Hello! I\'m Kopqo AI, your intelligent daily assistant. How can I help you today?', false);
+    showToast('Chat history cleared');
+  }
+
+  function appendMessageDOM(role, content, animate = true) {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    if (!animate) div.style.animation = 'none';
+
+    const avatar = role === 'user' ? 'U' : 'K';
+    div.innerHTML = `
+      <div class="msg-avatar">${avatar}</div>
+      <div class="msg-body">
+        <div class="msg-bubble">${escapeHtml(content)}</div>
+        <div class="msg-actions">
+          <button class="msg-copy-btn" onclick="copyText(${JSON.stringify(content)}, this)">Copy</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function showTyping() {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'message assistant';
+    div.id = 'typingIndicator';
+    div.innerHTML = `
+      <div class="msg-avatar">K</div>
+      <div class="msg-body">
+        <div class="msg-bubble">
+          <div class="typing-bubble">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingIndicator');
+    if (t) t.remove();
+  }
+
+  function scrollToBottom() {
+    const c = document.getElementById('chatMessages');
+    c.scrollTop = c.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const sendBtn = document.getElementById('sendBtn');
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    messages.push({ role: 'user', content: text });
+    appendMessageDOM('user', text);
+    saveHistory();
+
+    showTyping();
+
+    try {
+      const url = `https://api-nanzz.my.id/docs/api/ai/chat-gpt.php?text=${encodeURIComponent(text)}&model=deepseek`;
+      const res = await fetch(url);
+      const data = await res.json();
+      removeTyping();
+
+      const reply = data?.result || data?.response || data?.message || data?.answer || JSON.stringify(data);
+      messages.push({ role: 'assistant', content: reply });
+      appendMessageDOM('assistant', reply);
+      saveHistory();
+    } catch(e) {
+      removeTyping();
+      const errMsg = 'Sorry, I could not reach the server. Please check your connection and try again.';
+      appendMessageDOM('assistant', errMsg);
+    }
+
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+    document.getElementById('chatInput').focus();
+  });
+</script>
+</body>
+</html>
