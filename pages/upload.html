@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File Upload AI — Kopqo AI</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    @media (max-width: 600px) { .analysis-grid { grid-template-columns: 1fr; } }
+
+    .analysis-block {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+    }
+    .analysis-block h4 {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .analysis-block p {
+      font-size: 14px;
+      color: var(--silver);
+      line-height: 1.7;
+    }
+    .analysis-block.full-width { grid-column: 1 / -1; }
+
+    .img-preview-wrap {
+      margin-top: 16px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      max-height: 280px;
+      border: 1px solid var(--glass-border);
+    }
+    .img-preview-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .upload-again-btn {
+      background: none;
+      border: none;
+      color: var(--silver-dim);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      text-decoration: underline;
+      margin-top: 8px;
+    }
+    .upload-again-btn:hover { color: var(--accent); }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .tag {
+      background: rgba(123,94,167,0.12);
+      border: 1px solid rgba(123,94,167,0.2);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--silver);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">Kopqo <span>AI</span></a>
+    <div class="nav-links">
+      <a href="chat.html">Chat</a>
+      <a href="generator.html">App Gen</a>
+      <a href="prompt.html">Prompt</a>
+      <a href="image.html">Image</a>
+      <a href="upload.html">File AI</a>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="chat.html">Chat AI</a>
+    <a href="generator.html">App Generator</a>
+    <a href="prompt.html">Prompt Generator</a>
+    <a href="image.html">Image AI</a>
+    <a href="upload.html">File Upload AI</a>
+  </div>
+</nav>
+
+<div class="page-wrap" style="max-width:860px;">
+  <div class="page-header">
+    <div class="section-label">File Upload AI</div>
+    <h1>Analyze Any File with AI</h1>
+    <p>Upload an image or text file and get instant AI-powered insights and analysis.</p>
+  </div>
+
+  <!-- Drop Zone -->
+  <div
+    class="drop-zone"
+    id="dropZone"
+    onclick="document.getElementById('fileInput').click()"
+    ondragover="dragOver(event)"
+    ondragleave="dragLeave(event)"
+    ondrop="handleDrop(event)"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <h3>Drop your file here</h3>
+    <p>or click to browse — Images, TXT, PDF supported</p>
+    <p style="margin-top:8px;font-size:12px;opacity:0.4;">Max 10MB</p>
+  </div>
+  <input type="file" id="fileInput" accept="image/*,.txt,.pdf,.csv,.md" style="display:none;" onchange="handleFile(event)"/>
+
+  <!-- File Preview -->
+  <div id="filePreview" style="display:none;">
+    <div class="file-preview">
+      <div class="file-icon" id="fileIconEl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="file-meta">
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-size" id="fileSize">—</div>
+      </div>
+      <button class="upload-again-btn" onclick="resetUpload()">Remove</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar" id="progressBar" style="display:none;">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <!-- Image preview -->
+    <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none;">
+      <img id="imgPreview" src="" alt=""/>
+    </div>
+
+    <!-- Analyze button -->
+    <div style="margin-top:20px;">
+      <button class="btn-primary" onclick="analyzeFile()" id="analyzeBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Analyze with AI
+      </button>
+    </div>
+  </div>
+
+  <!-- Analysis Result -->
+  <div class="result-panel" id="resultPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span class="result-label">AI Analysis</span>
+      <button class="msg-copy-btn" onclick="copyAnalysis()">Copy Report</button>
+    </div>
+    <div class="analysis-grid" id="analysisGrid"></div>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+  let currentFile = null;
+  let analysisReport = '';
+
+  function dragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.add('drag-over');
+  }
+  function dragLeave(e) {
+    document.getElementById('dropZone').classList.remove('drag-over');
+  }
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function processFile(file) {
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('File too large. Max 10MB.', 'error');
+      return;
+    }
+    currentFile = file;
+
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('filePreview').style.display = 'block';
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = `${formatBytes(file.size)} · ${file.type || 'Unknown type'}`;
+    document.getElementById('resultPanel').classList.remove('visible');
+
+    // Image preview
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('imgPreview').src = e.target.result;
+        document.getElementById('imgPreviewWrap').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      document.getElementById('imgPreviewWrap').style.display = 'none';
+    }
+  }
+
+  function resetUpload() {
+    currentFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('dropZone').style.display = 'flex';
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('resultPanel').classList.remove('visible');
+  }
+
+  function animateProgress(callback) {
+    const bar = document.getElementById('progressBar');
+    const fill = document.getElementById('progressFill');
+    bar.style.display = 'block';
+    let width = 0;
+    const interval = setInterval(() => {
+      width = Math.min(width + Math.random() * 15, 85);
+      fill.style.width = width + '%';
+    }, 300);
+
+    return () => {
+      clearInterval(interval);
+      fill.style.width = '100%';
+      setTimeout(() => { bar.style.display = 'none'; fill.style.width = '0%'; }, 600);
+    };
+  }
+
+  async function analyzeFile() {
+    if (!currentFile) return;
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    const stopProgress = animateProgress();
+
+    try {
+      let fileContent = '';
+      let analysisType = '';
+
+      if (currentFile.type.startsWith('image/')) {
+        analysisType = 'image';
+        fileContent = `Image file: ${currentFile.name}, Size: ${formatBytes(currentFile.size)}, Type: ${currentFile.type}`;
+      } else {
+        analysisType = 'text';
+        fileContent = await readTextFile(currentFile);
+        if (fileContent.length > 3000) fileContent = fileContent.substring(0, 3000) + '...[truncated]';
+      }
+
+      const prompt = analysisType === 'image'
+        ? `Analyze this uploaded image file named "${currentFile.name}". Provide a detailed analysis as JSON with these keys:
+          {
+            "description": "What the image likely contains based on filename and metadata",
+            "type": "Type of image (photo, illustration, screenshot, etc.)",
+            "suggestions": "3 creative or practical uses for this image",
+            "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+            "quality": "Assessment of potential image quality",
+            "summary": "One sentence executive summary"
+          }
+          Return ONLY valid JSON.`
+        : `Analyze this text file content and provide insights as JSON:
+          Filename: "${currentFile.name}"
+          Content preview:
+          ${fileContent}
+          
+          Return JSON with these keys:
+          {
+            "summary": "2-3 sentence summary of the content",
+            "type": "Type of document (article, code, data, etc.)",
+            "topics": "Main topics covered",
+            "suggestions": "3 actionable suggestions based on the content",
+            "sentiment": "Overall tone/sentiment",
+            "wordcount": "Estimated word count",
+            "tags": ["tag1", "tag2", "tag3", "tag4"]
+          }
+          Return ONLY valid JSON.`;
+
+      const url = `https://api-nanzz.my.id/docs/api/ai/chat-gpt.php?text=${encodeURIComponent(prompt)}&model=deepseek`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      let raw = data?.result || data?.response || data?.message || data?.answer || '{}';
+      raw = raw.replace(/```json|```/g, '').trim();
+
+      let parsed;
+      try { parsed = JSON.parse(raw); }
+      catch(e) { parsed = { summary: raw, type: currentFile.type, suggestions: 'Analysis complete', tags: [] }; }
+
+      stopProgress();
+      renderAnalysis(parsed, analysisType);
+      showToast('Analysis complete');
+    } catch(e) {
+      stopProgress();
+      showToast('Analysis failed. Please try again.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze with AI';
+  }
+
+  function readTextFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  function renderAnalysis(data, type) {
+    const grid = document.getElementById('analysisGrid');
+    grid.innerHTML = '';
+    analysisReport = JSON.stringify(data, null, 2);
+
+    const blocks = [];
+
+    if (data.summary) {
+      blocks.push({ label: 'Summary', content: data.summary, full: true });
+    }
+    if (data.description) {
+      blocks.push({ label: 'Description', content: data.description, full: true });
+    }
+    if (data.type) {
+      blocks.push({ label: 'Document Type', content: data.type });
+    }
+    if (data.topics) {
+      blocks.push({ label: 'Key Topics', content: data.topics });
+    }
+    if (data.sentiment) {
+      blocks.push({ label: 'Tone / Sentiment', content: data.sentiment });
+    }
+    if (data.quality) {
+      blocks.push({ label: 'Quality Assessment', content: data.quality });
+    }
+    if (data.wordcount) {
+      blocks.push({ label: 'Word Count', content: data.wordcount });
+    }
+    if (data.suggestions) {
+      blocks.push({ label: 'AI Suggestions', content: data.suggestions, full: true });
+    }
+
+    blocks.forEach(block => {
+      const div = document.createElement('div');
+      div.className = `analysis-block${block.full ? ' full-width' : ''}`;
+      div.innerHTML = `<h4>${block.label}</h4><p>${block.content}</p>`;
+      grid.appendChild(div);
+    });
+
+    if (data.tags && data.tags.length) {
+      const tagsDiv = document.createElement('div');
+      tagsDiv.className = 'analysis-block full-width';
+      tagsDiv.innerHTML = `<h4>Tags</h4><div class="tag-list">${data.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
+      grid.appendChild(tagsDiv);
+    }
+
+    document.getElementById('resultPanel').classList.add('visible');
+  }
+
+  function copyAnalysis() {
+    const btn = event.target;
+    copyText(analysisReport, btn);
+  }
+</script>
+</body>
+</html>
