@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prompt Generator — Kopqo AI</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">Kopqo <span>AI</span></a>
+    <div class="nav-links">
+      <a href="chat.html">Chat</a>
+      <a href="generator.html">App Gen</a>
+      <a href="prompt.html">Prompt</a>
+      <a href="image.html">Image</a>
+      <a href="upload.html">File AI</a>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="chat.html">Chat AI</a>
+    <a href="generator.html">App Generator</a>
+    <a href="prompt.html">Prompt Generator</a>
+    <a href="image.html">Image AI</a>
+    <a href="upload.html">File Upload AI</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="section-label">Prompt Generator</div>
+    <h1>Craft Smarter Prompts</h1>
+    <p>Transform rough ideas into structured, powerful AI prompts optimized for any use case.</p>
+  </div>
+
+  <div class="glass-card">
+    <div class="flex flex-col gap-12">
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;display:block;">Your Rough Idea or Basic Prompt</label>
+        <textarea
+          class="input-field"
+          id="promptInput"
+          rows="4"
+          placeholder="e.g. write a blog about AI, make a logo for my app, help me study for exams..."
+        ></textarea>
+      </div>
+
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;display:block;">Target AI / Use Case</label>
+        <div class="style-grid" id="useCaseGrid">
+          <button class="style-chip active" data-val="general">General AI</button>
+          <button class="style-chip" data-val="image">Image Generation</button>
+          <button class="style-chip" data-val="code">Code Assistant</button>
+          <button class="style-chip" data-val="writing">Writing & Content</button>
+          <button class="style-chip" data-val="analysis">Data Analysis</button>
+        </div>
+      </div>
+
+      <div>
+        <button class="btn-primary" onclick="generatePrompt()" id="promptBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Generate Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="prompt-output" id="promptOutput">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span class="result-label">Generated Prompt</span>
+      <button class="msg-copy-btn" id="copyPromptBtn" onclick="copyFullPrompt()">Copy All</button>
+    </div>
+
+    <div class="prompt-section">
+      <div class="prompt-section-label">Role / Context</div>
+      <div class="prompt-section-text" id="roleSection">—</div>
+    </div>
+    <div class="prompt-section">
+      <div class="prompt-section-label">Task</div>
+      <div class="prompt-section-text" id="taskSection">—</div>
+    </div>
+    <div class="prompt-section">
+      <div class="prompt-section-label">Format / Output Style</div>
+      <div class="prompt-section-text" id="formatSection">—</div>
+    </div>
+    <div class="prompt-section">
+      <div class="prompt-section-label">Full Prompt</div>
+      <div class="prompt-section-text" id="fullPromptSection" style="background:rgba(0,0,0,0.2);padding:16px;border-radius:10px;border:1px solid var(--glass-border);font-family:monospace;font-size:13px;line-height:1.8;">—</div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+  // Use case selection
+  document.querySelectorAll('#useCaseGrid .style-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#useCaseGrid .style-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  let fullGeneratedPrompt = '';
+
+  async function generatePrompt() {
+    const input = document.getElementById('promptInput').value.trim();
+    if (!input) { showToast('Please enter your idea first', 'error'); return; }
+
+    const useCase = document.querySelector('#useCaseGrid .style-chip.active')?.dataset.val || 'general';
+    const btn = document.getElementById('promptBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+
+    const metaPrompt = `You are a prompt engineering expert. Take this rough idea: "${input}" for use case: ${useCase}.
+    
+Return a JSON object with these exact keys:
+{
+  "role": "The role/context setup for the AI (1-2 sentences)",
+  "task": "The clear task description (2-3 sentences)",
+  "format": "Output format and style instructions (1-2 sentences)",
+  "full": "The complete optimized prompt combining all above sections into one polished prompt"
+}
+
+Return ONLY the JSON. No markdown, no explanation.`;
+
+    try {
+      const url = `https://api-nanzz.my.id/docs/api/ai/prompt-generator.php?text=${encodeURIComponent(metaPrompt)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      let raw = data?.result || data?.response || data?.message || data?.answer || '';
+      raw = raw.replace(/```json|```/g, '').trim();
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch(e) {
+        // Fallback: treat as plain text output
+        parsed = {
+          role: 'AI Assistant with expertise in the requested domain.',
+          task: raw.substring(0, 300),
+          format: 'Provide a clear, structured, and detailed response.',
+          full: raw
+        };
+      }
+
+      document.getElementById('roleSection').textContent = parsed.role || '—';
+      document.getElementById('taskSection').textContent = parsed.task || '—';
+      document.getElementById('formatSection').textContent = parsed.format || '—';
+      document.getElementById('fullPromptSection').textContent = parsed.full || '—';
+      fullGeneratedPrompt = parsed.full || raw;
+
+      document.getElementById('promptOutput').classList.add('visible');
+      showToast('Prompt generated');
+    } catch(e) {
+      showToast('Generation failed. Please try again.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Generate Prompt';
+  }
+
+  function copyFullPrompt() {
+    copyText(fullGeneratedPrompt, document.getElementById('copyPromptBtn'));
+  }
+</script>
+</body>
+</html>
