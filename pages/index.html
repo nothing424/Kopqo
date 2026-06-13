@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image AI — Kopqo AI</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .img-download-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: white;
+      padding: 5px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      opacity: 0;
+      transition: opacity 200ms ease-out;
+    }
+    .image-card:hover .img-download-btn { opacity: 1; }
+
+    .gen-count-label {
+      font-size: 13px;
+      color: var(--silver-dim);
+    }
+    .gen-count-row {
+      display: flex;
+      gap: 8px;
+    }
+    .count-btn {
+      width: 32px; height: 32px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--silver);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 200ms, color 200ms;
+    }
+    .count-btn:hover, .count-btn.active {
+      border-color: var(--accent);
+      color: var(--white);
+    }
+
+    .lightbox-actions {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+    .lb-btn {
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: white;
+      padding: 9px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">Kopqo <span>AI</span></a>
+    <div class="nav-links">
+      <a href="chat.html">Chat</a>
+      <a href="generator.html">App Gen</a>
+      <a href="prompt.html">Prompt</a>
+      <a href="image.html">Image</a>
+      <a href="upload.html">File AI</a>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="chat.html">Chat AI</a>
+    <a href="generator.html">App Generator</a>
+    <a href="prompt.html">Prompt Generator</a>
+    <a href="image.html">Image AI</a>
+    <a href="upload.html">File Upload AI</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="section-label">Image AI Generator</div>
+    <h1>Generate Visuals from Text</h1>
+    <p>Create logos, banners, wallpapers, and UI concepts with AI.</p>
+  </div>
+
+  <div class="glass-card">
+    <div class="flex flex-col gap-16">
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;display:block;">Describe your image</label>
+        <textarea
+          class="input-field"
+          id="imgPrompt"
+          rows="3"
+          placeholder="e.g. A futuristic minimalist logo for a tech company named Kopqo, dark background, purple gradient, geometric symbol..."
+        ></textarea>
+      </div>
+
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:10px;display:block;">Style Preset</label>
+        <div class="style-grid" id="styleGrid">
+          <button class="style-chip active" data-style="logo">Logo</button>
+          <button class="style-chip" data-style="cinematic">Cinematic</button>
+          <button class="style-chip" data-style="minimalist">Minimalist</button>
+          <button class="style-chip" data-style="anime">Anime</button>
+          <button class="style-chip" data-style="futuristic">Futuristic UI</button>
+          <button class="style-chip" data-style="photorealistic">Photorealistic</button>
+          <button class="style-chip" data-style="abstract">Abstract</button>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:13px;color:var(--silver-dim);margin-bottom:10px;display:block;">Number of Images</label>
+        <div class="gen-count-row">
+          <button class="count-btn active" data-count="1" onclick="setCount(this)">1</button>
+          <button class="count-btn" data-count="2" onclick="setCount(this)">2</button>
+          <button class="count-btn" data-count="4" onclick="setCount(this)">4</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="generateImages()" id="imgBtn" style="align-self:flex-start;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Generate Images
+      </button>
+    </div>
+  </div>
+
+  <!-- Image Grid -->
+  <div id="imageGrid" class="image-grid" style="display:none;"></div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt=""/>
+  <div class="lightbox-actions">
+    <button class="lb-btn" onclick="downloadLightboxImage()">Download Image</button>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+  let selectedStyle = 'logo';
+  let selectedCount = 1;
+  let lightboxUrl = '';
+
+  document.querySelectorAll('#styleGrid .style-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#styleGrid .style-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedStyle = chip.dataset.style;
+    });
+  });
+
+  function setCount(btn) {
+    document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCount = parseInt(btn.dataset.count);
+  }
+
+  // Style prompt modifiers
+  const styleModifiers = {
+    logo: 'professional logo design, vector style, clean lines, transparent background',
+    cinematic: 'cinematic photography, dramatic lighting, film grain, 4K, epic composition',
+    minimalist: 'minimalist design, clean, lots of white space, simple geometric shapes',
+    anime: 'anime art style, vibrant colors, detailed illustration, Japanese animation style',
+    futuristic: 'futuristic UI concept, holographic, sci-fi, neon accents, dark theme',
+    photorealistic: 'photorealistic, DSLR photography, high resolution, natural lighting',
+    abstract: 'abstract art, fluid shapes, vibrant gradients, contemporary art style'
+  };
+
+  async function generateImage(prompt, style) {
+    const fullPrompt = `${prompt}, ${styleModifiers[style] || style}, high quality, detailed`;
+    const seed = Math.floor(Math.random() * 1000000);
+    const encoded = encodeURIComponent(fullPrompt);
+
+    // Using Pollinations.ai as image generation service
+    const url = `https://image.pollinations.ai/prompt/${encoded}?width=512&height=512&seed=${seed}&nologo=true`;
+    return url;
+  }
+
+  async function generateImages() {
+    const prompt = document.getElementById('imgPrompt').value.trim();
+    if (!prompt) { showToast('Please describe your image first', 'error'); return; }
+
+    const btn = document.getElementById('imgBtn');
+    const grid = document.getElementById('imageGrid');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+
+    // Show skeletons
+    for (let i = 0; i < selectedCount; i++) {
+      const skeleton = document.createElement('div');
+      skeleton.className = 'image-card image-skeleton';
+      skeleton.style.minHeight = '220px';
+      grid.appendChild(skeleton);
+    }
+
+    // Generate images
+    const promises = [];
+    for (let i = 0; i < selectedCount; i++) {
+      promises.push(generateImage(prompt, selectedStyle));
+    }
+
+    const urls = await Promise.all(promises);
+    grid.innerHTML = '';
+
+    urls.forEach((url, idx) => {
+      const card = document.createElement('div');
+      card.className = 'image-card';
+      card.style.minHeight = '220px';
+
+      const img = document.createElement('img');
+      img.style.display = 'none';
+      img.onload = () => {
+        img.style.display = 'block';
+        card.classList.remove('image-skeleton');
+      };
+      img.onerror = () => {
+        card.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--silver-dim);font-size:13px;">Failed to load</div>';
+      };
+      img.src = url;
+      img.alt = `Generated image ${idx + 1}`;
+
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'img-download-btn';
+      dlBtn.textContent = 'Download';
+      dlBtn.onclick = (e) => { e.stopPropagation(); downloadImage(url, idx + 1); };
+
+      card.appendChild(img);
+      card.appendChild(dlBtn);
+      card.onclick = () => openLightbox(url);
+      card.classList.add('image-skeleton');
+      grid.appendChild(card);
+    });
+
+    showToast(`${selectedCount} image${selectedCount > 1 ? 's' : ''} generated`);
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Generate Images';
+  }
+
+  function openLightbox(url) {
+    lightboxUrl = url;
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox(e) {
+    if (!e || e.target === document.getElementById('lightbox') || e.target.classList.contains('lightbox-close')) {
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function downloadImage(url, idx) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kopqo-image-${idx}.png`;
+    a.target = '_blank';
+    a.click();
+    showToast('Downloading image...');
+  }
+
+  function downloadLightboxImage() {
+    downloadImage(lightboxUrl, Date.now());
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox({ target: document.getElementById('lightbox') });
+  });
+</script>
+</body>
+</html>
